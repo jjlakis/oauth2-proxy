@@ -30,6 +30,8 @@ type Provider struct {
 	KeycloakConfig KeycloakOptions `json:"keycloakConfig,omitempty"`
 	// AzureConfig holds all configurations for Azure provider.
 	AzureConfig AzureOptions `json:"azureConfig,omitempty"`
+	// MicrosoftEntraIDConfig holds all configurations for Entra ID provider.
+	MicrosoftEntraIDConfig MicrosoftEntraIDOptions `json:"microsoftEntraIDConfig,omitempty"`
 	// ADFSConfig holds all configurations for ADFS provider.
 	ADFSConfig ADFSOptions `json:"ADFSConfig,omitempty"`
 	// BitbucketConfig holds all configurations for Bitbucket provider.
@@ -70,6 +72,9 @@ type Provider struct {
 	RedeemURL string `json:"redeemURL,omitempty"`
 	// ProfileURL is the profile access endpoint
 	ProfileURL string `json:"profileURL,omitempty"`
+	// SkipClaimsFromProfileURL allows to skip request to Profile URL for resolving claims not present in id_token
+	// default set to 'false'
+	SkipClaimsFromProfileURL bool `json:"skipClaimsFromProfileURL,omitempty"`
 	// ProtectedResource is the resource that is protected (Azure AD and ADFS only)
 	ProtectedResource string `json:"resource,omitempty"`
 	// ValidateURL is the access token validation endpoint
@@ -80,6 +85,9 @@ type Provider struct {
 	AllowedGroups []string `json:"allowedGroups,omitempty"`
 	// The code challenge method
 	CodeChallengeMethod string `json:"code_challenge_method,omitempty"`
+
+	// URL to call to perform backend logout, `{id_token}` would be replaced by the actual `id_token` if available in the session
+	BackendLogoutURL string `json:"backendLogoutURL"`
 }
 
 // ProviderType is used to enumerate the different provider type options
@@ -94,6 +102,9 @@ const (
 
 	// AzureProvider is the provider type for Azure
 	AzureProvider ProviderType = "azure"
+
+	// MicrosoftEntraIDProvider is the provider type for Entra OIDC
+	MicrosoftEntraIDProvider ProviderType = "entra-id"
 
 	// BitbucketProvider is the provider type for Bitbucket
 	BitbucketProvider ProviderType = "bitbucket"
@@ -147,6 +158,11 @@ type AzureOptions struct {
 	// GraphGroupField configures the group field to be used when building the groups list from Microsoft Graph
 	// Default value is 'id'
 	GraphGroupField string `json:"graphGroupField,omitempty"`
+}
+
+type MicrosoftEntraIDOptions struct {
+	DisableGroupsFromGraph bool     `json:"disableGroupsFromGraph,omitempty"`
+	AllowedMultiTenants    []string `json:"allowedMultiTenants,omitempty"`
 }
 
 type ADFSOptions struct {
