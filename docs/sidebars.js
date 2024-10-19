@@ -1,5 +1,9 @@
-module.exports = {
+const sidebars = {
   docs: [
+    {
+      type: 'doc',
+      id: 'welcome',
+    },
     {
       type: 'doc',
       id: 'installation',
@@ -18,6 +22,7 @@ module.exports = {
       collapsed: false,
       items: [
         'configuration/overview',
+        'configuration/integration',
         {
           type: 'category',
           label: 'OAuth Provider Configuration',
@@ -28,6 +33,7 @@ module.exports = {
           items: [
             'configuration/providers/google',
             'configuration/providers/azure',
+            'configuration/providers/ms_entra_id',
             'configuration/providers/adfs',
             'configuration/providers/facebook',
             'configuration/providers/github',
@@ -36,7 +42,6 @@ module.exports = {
             'configuration/providers/keycloak_oidc',
             'configuration/providers/gitlab',
             'configuration/providers/linkedin',
-            'configuration/providers/azure_ad',
             'configuration/providers/openid_connect',
             'configuration/providers/login_gov',
             'configuration/providers/nextcloud',
@@ -71,3 +76,5 @@ module.exports = {
     },
   ],
 };
+
+export default sidebars;
