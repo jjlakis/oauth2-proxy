@@ -488,6 +488,7 @@ type LegacyProvider struct {
 	KeycloakGroups                         []string `flag:"keycloak-group" cfg:"keycloak_groups"`
 	AzureTenant                            string   `flag:"azure-tenant" cfg:"azure_tenant"`
 	AzureGraphGroupField                   string   `flag:"azure-graph-group-field" cfg:"azure_graph_group_field"`
+	EntraIDAllowedTenants                  []string `flag:"entra-id-allowed-tenant" cfg:"entra_id_allowed_tenants"`
 	BitbucketTeam                          string   `flag:"bitbucket-team" cfg:"bitbucket_team"`
 	BitbucketRepository                    string   `flag:"bitbucket-repository" cfg:"bitbucket_repository"`
 	GitHubOrg                              string   `flag:"github-org" cfg:"github_org"`
@@ -523,6 +524,7 @@ type LegacyProvider struct {
 	LoginURL                           string   `flag:"login-url" cfg:"login_url"`
 	RedeemURL                          string   `flag:"redeem-url" cfg:"redeem_url"`
 	ProfileURL                         string   `flag:"profile-url" cfg:"profile_url"`
+	SkipClaimsFromProfileURL           bool     `flag:"skip-claims-from-profile-url" cfg:"skip_claims_from_profile_url"`
 	ProtectedResource                  string   `flag:"resource" cfg:"resource"`
 	ValidateURL                        string   `flag:"validate-url" cfg:"validate_url"`
 	Scope                              string   `flag:"scope" cfg:"scope"`
@@ -531,6 +533,7 @@ type LegacyProvider struct {
 	UserIDClaim                        string   `flag:"user-id-claim" cfg:"user_id_claim"`
 	AllowedGroups                      []string `flag:"allowed-group" cfg:"allowed_groups"`
 	AllowedRoles                       []string `flag:"allowed-role" cfg:"allowed_roles"`
+	BackendLogoutURL                   string   `flag:"backend-logout-url" cfg:"backend_logout_url"`
 
 	AcrValues  string `flag:"acr-values" cfg:"acr_values"`
 	JWTKey     string `flag:"jwt-key" cfg:"jwt_key"`
@@ -548,6 +551,7 @@ func legacyProviderFlagSet() *pflag.FlagSet {
 	flagSet.StringSlice("keycloak-group", []string{}, "restrict logins to members of these groups (may be given multiple times)")
 	flagSet.String("azure-tenant", "common", "go to a tenant-specific or common (tenant-independent) endpoint.")
 	flagSet.String("azure-graph-group-field", "", "configures the group field to be used when building the groups list(`id` or `displayName`. Default is `id`) from Microsoft Graph(available only for v2.0 oidc url). Based on this value, the `allowed-group` config values should be adjusted accordingly. If using `id` as group field, `allowed-group` should contains groups IDs, if using `displayName` as group field, `allowed-group` should contains groups name")
+	flagSet.StringSlice("entra-id-allowed-tenant", []string{}, "list of tenants allowed for MS Entra ID multi-tenant application")
 	flagSet.String("bitbucket-team", "", "restrict logins to members of this team")
 	flagSet.String("bitbucket-repository", "", "restrict logins to user with access to this repository")
 	flagSet.String("github-org", "", "restrict logins to members of this organisation")
@@ -578,6 +582,7 @@ func legacyProviderFlagSet() *pflag.FlagSet {
 	flagSet.String("login-url", "", "Authentication endpoint")
 	flagSet.String("redeem-url", "", "Token redemption endpoint")
 	flagSet.String("profile-url", "", "Profile access endpoint")
+	flagSet.Bool("skip-claims-from-profile-url", false, "Skip loading missing claims from profile URL")
 	flagSet.String("resource", "", "The resource that is protected (Azure AD only)")
 	flagSet.String("validate-url", "", "Access token validation endpoint")
 	flagSet.String("scope", "", "OAuth scope specification")
@@ -594,6 +599,7 @@ func legacyProviderFlagSet() *pflag.FlagSet {
 	flagSet.String("user-id-claim", OIDCEmailClaim, "(DEPRECATED for `oidc-email-claim`) which claim contains the user ID")
 	flagSet.StringSlice("allowed-group", []string{}, "restrict logins to members of this group (may be given multiple times)")
 	flagSet.StringSlice("allowed-role", []string{}, "(keycloak-oidc) restrict logins to members of these roles (may be given multiple times)")
+	flagSet.String("backend-logout-url", "", "url to perform a backend logout, {id_token} can be used as placeholder for the id_token")
 
 	return flagSet
 }
@@ -658,20 +664,22 @@ func (l *LegacyProvider) convert() (Providers, error) {
 	providers := Providers{}
 
 	provider := Provider{
-		ClientID:            l.ClientID,
-		ClientSecret:        l.ClientSecret,
-		ClientSecretFile:    l.ClientSecretFile,
-		Type:                ProviderType(l.ProviderType),
-		CAFiles:             l.ProviderCAFiles,
-		UseSystemTrustStore: l.UseSystemTrustStore,
-		LoginURL:            l.LoginURL,
-		RedeemURL:           l.RedeemURL,
-		ProfileURL:          l.ProfileURL,
-		ProtectedResource:   l.ProtectedResource,
-		ValidateURL:         l.ValidateURL,
-		Scope:               l.Scope,
-		AllowedGroups:       l.AllowedGroups,
-		CodeChallengeMethod: l.CodeChallengeMethod,
+		ClientID:                 l.ClientID,
+		ClientSecret:             l.ClientSecret,
+		ClientSecretFile:         l.ClientSecretFile,
+		Type:                     ProviderType(l.ProviderType),
+		CAFiles:                  l.ProviderCAFiles,
+		UseSystemTrustStore:      l.UseSystemTrustStore,
+		LoginURL:                 l.LoginURL,
+		RedeemURL:                l.RedeemURL,
+		ProfileURL:               l.ProfileURL,
+		SkipClaimsFromProfileURL: l.SkipClaimsFromProfileURL,
+		ProtectedResource:        l.ProtectedResource,
+		ValidateURL:              l.ValidateURL,
+		Scope:                    l.Scope,
+		AllowedGroups:            l.AllowedGroups,
+		CodeChallengeMethod:      l.CodeChallengeMethod,
+		BackendLogoutURL:         l.BackendLogoutURL,
 	}
 
 	// This part is out of the switch section for all providers that support OIDC
@@ -699,6 +707,10 @@ func (l *LegacyProvider) convert() (Providers, error) {
 	provider.AzureConfig = AzureOptions{
 		Tenant:          l.AzureTenant,
 		GraphGroupField: l.AzureGraphGroupField,
+	}
+
+	provider.MicrosoftEntraIDConfig = MicrosoftEntraIDOptions{
+		AllowedTenants: l.EntraIDAllowedTenants,
 	}
 
 	switch provider.Type {
